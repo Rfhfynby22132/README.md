@@ -3,11 +3,11 @@ from сonfig import DATABASE
 
 skills = [ (_,) for _ in (['Python', 'SQL', 'API', 'Telegram'])]
 statuses = [ (_,) for _ in (['На этапе проектирования', 'В процессе разработки', 'Разработан. Готов к использованию.', 'Обновлен', 'Завершен. Не поддерживается'])]
-
+# Создаем класс для хранение функций и созданной базы данных
 class DB_Manager:
     def __init__(self, database):
         self.database = database
-        
+    # Создаем таблицу 
     def create_tables(self):
         conn = sqlite3.connect(self.database)
         with conn:
@@ -35,20 +35,20 @@ class DB_Manager:
                             status_name TEXT
                         )''')
             conn.commit()
-
+    # Функция для выполнение многократных действий 
     def __executemany(self, sql, data):
         conn = sqlite3.connect(self.database)
         with conn:
             conn.executemany(sql, data)
             conn.commit()
-    
+    # Функция для выберенных данные
     def __select_data(self, sql, data = tuple()):
         conn = sqlite3.connect(self.database)
         with conn:
             cur = conn.cursor()
             cur.execute(sql, data)
             return cur.fetchall()
-        
+     # Функция для вставки по умолчанию
     def default_insert(self):
         sql = 'INSERT OR IGNORE INTO skills (skill_name) values(?)'
         data = skills
@@ -57,14 +57,14 @@ class DB_Manager:
         data = statuses
         self.__executemany(sql, data)
 
-
+    # Функция для того чтобы тг бот мог вставить проект, кторый user зделает
     def insert_project(self, data):
         sql = """INSERT INTO projects 
                 (user_id, project_name, url, status_id) 
-                values(?, ?, ?, ?)""" # Запиши сюда правильный SQL запрос
+                values(?, ?, ?, ?)"""
         self.__executemany(sql, data)
 
-
+    # Функция для вставление скилла 
     def insert_skill(self, user_id, project_name, skill):
         sql = 'SELECT project_id FROM projects WHERE project_name = ? AND user_id = ?'
         project_id = self.__select_data(sql, (project_name, user_id))[0][0]
@@ -73,41 +73,41 @@ class DB_Manager:
         sql = 'INSERT OR IGNORE INTO project_skills VALUES(?, ?)'
         self.__executemany(sql, data)
 
-
+    # Функция для получение статуса
     def get_statuses(self):
         sql="SELECT status_name from status" # Запиши сюда правильный SQL запрос
         return self.__select_data(sql)
-        
+    # Функция для
     def delit_status_id(self,status_id):
         sql ="""DELETE FROM status 
                 WHERE status_id = ? """
         self.__executemany(sql, [(status_id)])
 
-
+    # Функция для получение status_id
     def get_status_id(self, status_name):
         sql = 'SELECT status_id FROM status WHERE status_name = ?'
         res = self.__select_data(sql, (status_name,))
         if res: return res[0][0]
         else: return None
-
+     # Функция для получение project
     def get_projects(self, user_id):
         sql="""SELECT * FROM projects 
                WHERE user_id = ?"""# Запиши сюда правильный SQL запрос
         return self.__select_data(sql, data = (user_id,))
-        
+     # Функция для получение project_id
     def get_project_id(self, project_name, user_id):
         return self.__select_data(sql='SELECT project_id FROM projects WHERE project_name = ? AND user_id = ?  ', data = (project_name, user_id,))[0][0]
-        
+     # Функция для получение skills
     def get_skills(self):
         return self.__select_data(sql='SELECT * FROM skills')
-    
+     # Функция для получение project_skills
     def get_project_skills(self, project_name):
         res = self.__select_data(sql='''SELECT skill_name FROM projects 
 JOIN project_skills ON projects.project_id = project_skills.project_id 
 JOIN skills ON skills.skill_id = project_skills.skill_id 
 WHERE project_name = ?''', data = (project_name,) )
         return ', '.join([x[0] for x in res])
-    
+     # Функция для получение project_info
     def get_project_info(self, user_id, project_name):
         sql = """
         SELECT project_name, description, url, status_name FROM projects 
@@ -116,14 +116,14 @@ WHERE project_name = ?''', data = (project_name,) )
         WHERE project_name=? AND user_id=?
 """
         return self.__select_data(sql=sql, data = (project_name, user_id))
-
-
+    
+    # Функция для обновление projects
     def update_projects(self, param, data):
         sql = f"""UPDATE projects SET {param} = ? 
                   WHERE project_name = ? AND user_id = ?"""# Запиши сюда правильный SQL запрос
         self.__executemany(sql, [data]) 
 
-
+    # Функция для обновление status
     def update_status(self,param,data):
         sql = f"""UPDATE status SET {param} = ?
                   WHERE status_name = ? """
@@ -147,4 +147,5 @@ if __name__ == '__main__':
     manager.create_tables()
     manager.default_insert()
     #протестируй методы здесь
+
     
